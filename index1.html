@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Agenda Kelas Hari Ini</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    min-height:100vh;
+    background:linear-gradient(180deg,#0a3d62,#1e90ff);
+    color:#eaf6ff;
+    overflow-x:hidden;
+}
+
+/* WAVE ANIMATION */
+.wave{
+    position:fixed;
+    bottom:-80px;
+    width:200%;
+    height:200px;
+    background:rgba(255,255,255,0.2);
+    border-radius:50%;
+    animation:wave 14s linear infinite;
+    z-index:0;
+}
+.wave:nth-child(2){
+    bottom:-40px;
+    opacity:0.3;
+    animation-duration:20s;
+}
+@keyframes wave{
+    to{transform:translateX(-50%);}
+}
+
+/* CONTAINER */
+.container{
+    position:relative;
+    z-index:2;
+    max-width:900px;
+    margin:auto;
+    padding:40px 20px;
+    animation:fadeIn 1.5s ease;
+}
+@keyframes fadeIn{
+    from{opacity:0;transform:translateY(40px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+h1{
+    text-align:center;
+    margin-bottom:10px;
+    animation:float 3s ease-in-out infinite;
+}
+@keyframes float{
+    0%,100%{transform:translateY(0);}
+    50%{transform:translateY(-10px);}
+}
+
+.card{
+    background:rgba(255,255,255,0.15);
+    backdrop-filter:blur(6px);
+    padding:25px;
+    border-radius:20px;
+    margin-bottom:25px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.3);
+    animation:slideUp 1s ease;
+}
+@keyframes slideUp{
+    from{opacity:0;transform:translateY(40px);}
+    to{opacity:1;transform:translateY(0);}
+}
+
+label{
+    display:block;
+    margin-top:15px;
+    font-weight:bold;
+}
+input,textarea{
+    width:100%;
+    padding:10px;
+    margin-top:5px;
+    border-radius:10px;
+    border:none;
+    outline:none;
+}
+textarea{height:80px;}
+
+button{
+    margin-top:15px;
+    padding:12px 25px;
+    border:none;
+    border-radius:30px;
+    cursor:pointer;
+    background:linear-gradient(45deg,#00c6ff,#0072ff);
+    color:white;
+    font-size:1em;
+    transition:.3s;
+}
+button:hover{
+    transform:scale(1.1);
+}
+
+.agenda-item{
+    background:rgba(0,0,0,0.25);
+    padding:15px;
+    border-radius:15px;
+    margin-top:15px;
+    animation:pop .4s ease;
+}
+@keyframes pop{
+    from{opacity:0;transform:scale(.8);}
+    to{opacity:1;transform:scale(1);}
+}
+.agenda-item img{
+    width:100%;
+    margin-top:10px;
+    border-radius:10px;
+}
+
+/* HIDE */
+.hidden{display:none;}
+</style>
+</head>
+
+<body>
+
+<div class="wave"></div>
+<div class="wave"></div>
+
+<!-- LOGIN -->
+<div class="container" id="loginPage">
+    <div class="card">
+        <h1>🌊 Login Agenda Kelas</h1>
+
+        <label>Username</label>
+        <input id="username">
+
+        <label>Password</label>
+        <input id="password" type="password">
+
+        <button onclick="login()">Login</button>
+    </div>
+</div>
+
+<!-- AGENDA -->
+<div class="container hidden" id="agendaPage">
+    <button onclick="logout()">🚪 Logout</button>
+    <h1>📘 Agenda Kelas Hari Ini</h1>
+
+    <div class="card">
+        <label>Mata Pelajaran</label>
+        <input id="mapel">
+
+        <label>Materi / Tugas</label>
+        <textarea id="materi"></textarea>
+
+        <label>Upload Foto</label>
+        <input type="file" id="foto" accept="image/*">
+
+        <button onclick="addAgenda()">Tambah Agenda</button>
+    </div>
+
+    <div class="card">
+        <h2>📌 Daftar Agenda</h2>
+        <div id="agendaList"></div>
+    </div>
+</div>
+
+<script>
+// LOGIN
+if(localStorage.getItem("login")==="true"){
+    showAgenda();
+}
+
+function login(){
+    const u=document.getElementById("username").value;
+    const p=document.getElementById("password").value;
+
+    if(u==="user" && p==="123"){
+        localStorage.setItem("login","true");
+        showAgenda();
+    }else{
+        alert("Username atau password salah!");
+    }
+}
+
+function logout(){
+    localStorage.removeItem("login");
+    location.reload();
+}
+
+function showAgenda(){
+    document.getElementById("loginPage").classList.add("hidden");
+    document.getElementById("agendaPage").classList.remove("hidden");
+}
+
+// AGENDA
+let agenda=JSON.parse(localStorage.getItem("agenda"))||[];
+renderAgenda();
+
+function addAgenda(){
+    const mapel=document.getElementById("mapel").value;
+    const materi=document.getElementById("materi").value;
+    const foto=document.getElementById("foto");
+
+    if(!mapel){
+        alert("Mata pelajaran wajib diisi!");
+        return;
+    }
+
+    if(foto.files[0]){
+        const reader=new FileReader();
+        reader.onload=function(){
+            agenda.push({mapel,materi,foto:this.result});
+            save();
+        }
+        reader.readAsDataURL(foto.files[0]);
+    }else{
+        agenda.push({mapel,materi,foto:null});
+        save();
+    }
+
+    document.getElementById("mapel").value="";
+    document.getElementById("materi").value="";
+    foto.value="";
+}
+
+function save(){
+    localStorage.setItem("agenda",JSON.stringify(agenda));
+    renderAgenda();
+}
+
+function renderAgenda(){
+    const list=document.getElementById("agendaList");
+    list.innerHTML="";
+    agenda.forEach(a=>{
+        const div=document.createElement("div");
+        div.className="agenda-item";
+        div.innerHTML=`
+            <h3>${a.mapel}</h3>
+            ${a.materi ? `<p>${a.materi}</p>` : ""}
+            ${a.foto ? `<img src="${a.foto}">` : ""}
+        `;
+        list.appendChild(div);
+    });
+}
+</script>
+
+</body>
+</html>
